@@ -11,7 +11,7 @@ import subprocess as proc
 import sys
 
 # setup command-line arguments
-parser = argparse.ArgumentParser("Print labels for dymo label writer, optionally with a qr code")
+parser = argparse.ArgumentParser("Print labels for dymo label writer, optionally with a qr code and an icon")
 parser.add_argument('text', type=str, help="Text")
 parser.add_argument('qr', type=str, help="Text to generate a qr code for")
 parser.add_argument('--icon', type=str, help="Optional png icon file")
@@ -28,24 +28,29 @@ qr = qrcode.make(args.qr)
 img = ImageReader(qr._img)
 
 # TODO: make label size a cmdline arg
-# LABEL_SIZE = (1.125*inch, 3.25*inch)
-LABEL_SIZE = (0.6*inch, 1.75*inch)
+LABEL_SIZE = (1.125*inch, 3.25*inch)
+# LABEL_SIZE = (0.6*inch, 1.75*inch)
 
 
 # create label
 c = canvas.Canvas(args.output, pagesize=LABEL_SIZE)
 
+# transform so that we can render as if it's landscape mode
+c.rotate(-90)
+c.translate(-LABEL_SIZE[1], 0)
+
 # draw qr code
-c.drawImage(img, 0, 0, LABEL_SIZE[0], LABEL_SIZE[0])
+qr_size = LABEL_SIZE[0]
+c.drawImage(img, LABEL_SIZE[1] - qr_size, 0, qr_size, qr_size)
 
 # draw bounding box
 if args.bbox:
-    c.rect(0, 0, LABEL_SIZE[0], LABEL_SIZE[1], stroke=1, fill=0)
+    c.rect(0, 0, LABEL_SIZE[1], LABEL_SIZE[0], stroke=1, fill=0)
 
 
 # font
 fontName = 'Helvetica'
-fontSize = 12
+fontSize = 10
 c.setFont(fontName, fontSize)
 
 
@@ -58,40 +63,48 @@ def getTextHeight(fontName, fontSize):
     height = ascent - descent # <-- descent it's negative
     return height
 
-c.translate(LABEL_SIZE[0], LABEL_SIZE[1])
-c.rotate(-90)
-lineSpacing = getTextHeight(fontName, fontSize)
+# c.translate(LABEL_SIZE[0], LABEL_SIZE[1])
+# c.rotate(-90)
+# lineSpacing = getTextHeight(fontName, fontSize)
+
+item_spacing = 4
 
 # margins
-leftMargin = 10
-topMargin = 10
+leftMargin = 4
+c.translate(leftMargin, 0)
 
 if args.icon:
     # TODO: don't hardcode so many things
     img_width = 20
-    c.drawImage(args.icon, 4, -(LABEL_SIZE[0]*2 - img_width)/2, img_width, img_width)
-    leftMargin += img_width
+    c.drawImage(args.icon, 0, (LABEL_SIZE[0] - img_width) / 2, img_width, img_width)
+    c.translate(img_width + item_spacing, 0)
 
-# TODO: right margin
 
-c.translate(leftMargin, -topMargin)
-textWidth = LABEL_SIZE[1] - LABEL_SIZE[0] - leftMargin
+# vertically centered text drawn from the current point in multiple lines so
+# that it fits in the given box size
+def wrappedTextBox(canvas, text, boxSize, fontName, fontSize):
+    c.saveState()
 
-lines = simpleSplit(args.text, fontName, fontSize, textWidth)
+    lineHeight = getTextHeight(fontName, fontSize)
+    lines = simpleSplit(args.text, fontName, fontSize, textWidth)
 
-totalHeight = len(lines) * lineSpacing
+    totalHeight = len(lines) * lineHeight
 
-if totalHeight > LABEL_SIZE[0]:
-    print("ERROR: Text is too big", file=sys.stderr)
-    sys.exit(1)
+    if totalHeight > boxSize[1]:
+        raise RuntimeError("ERROR: Text is too big")
 
-# center text vertically
-c.translate(0, -(LABEL_SIZE[0] - totalHeight) / 2)
+    # center text vertically
+    c.translate(0, (boxSize[1] - totalHeight) / 2 + totalHeight - lineHeight)
 
-# print each line
-x = 0
-for i in range(len(lines)):
-    c.drawString(x, -lineSpacing*(i), lines[i])
+    # print each line
+    for i in range(len(lines)):
+        c.drawString(0, -lineHeight * i, lines[i])
+
+    c.restoreState()
+
+# TODO: top/bottom margin
+textWidth = LABEL_SIZE[1] - qr_size - leftMargin - item_spacing
+wrappedTextBox(c, args.text, (textWidth, LABEL_SIZE[0]), fontName, fontSize)
 
 # save label pdf file
 c.save()
