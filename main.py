@@ -20,16 +20,22 @@ parser.add_argument('--output', '-o', type=str, default='label.pdf', help="Pdf o
 parser.add_argument('--bbox', action='store_true', help="Draw a bounding box around the label")
 parser.add_argument('--noconfirm', action='store_true', help="When asked to print, just do it, don't ask for confirmation")
 parser.add_argument('--preview', action='store_true', help="Show a preview of the generated pdf")
+parser.add_argument('--size', type=str, default='normal', help="One of ['small', 'normal']")
+parser.add_argument('--font_size', type=int, default=10)
+parser.add_argument('--font', type=str, default='Helvetica')
 args = parser.parse_args()
 
 
-# generate qr code
-qr = qrcode.make(args.qr)
-img = ImageReader(qr._img)
-
-# TODO: make label size a cmdline arg
-LABEL_SIZE = (1.125*inch, 3.25*inch)
-# LABEL_SIZE = (0.6*inch, 1.75*inch)
+# label size
+if args.size == 'normal':
+    # LabelWriter 450 address labels
+    LABEL_SIZE = (1.125*inch, 3.25*inch)
+elif args.size == 'small':
+    # small enough to fit on an akro-mils container
+    LABEL_SIZE = (0.6*inch, 1.75*inch)
+else:
+    print("Size %s not valid" % args.size, end='')
+    sys.exit(1)
 
 
 # create label
@@ -40,8 +46,9 @@ c.rotate(-90)
 c.translate(-LABEL_SIZE[1], 0)
 
 # draw qr code
+qr = qrcode.make(args.qr)
 qr_size = LABEL_SIZE[0]
-c.drawImage(img, LABEL_SIZE[1] - qr_size, 0, qr_size, qr_size)
+c.drawImage(ImageReader(qr._img), LABEL_SIZE[1] - qr_size, 0, qr_size, qr_size)
 
 # draw bounding box
 if args.bbox:
@@ -49,9 +56,7 @@ if args.bbox:
 
 
 # font
-fontName = 'Helvetica'
-fontSize = 10
-c.setFont(fontName, fontSize)
+c.setFont(args.font, args.font_size)
 
 
 # font metrics
@@ -62,10 +67,6 @@ def getTextHeight(fontName, fontSize):
 
     height = ascent - descent # <-- descent it's negative
     return height
-
-# c.translate(LABEL_SIZE[0], LABEL_SIZE[1])
-# c.rotate(-90)
-# lineSpacing = getTextHeight(fontName, fontSize)
 
 item_spacing = 4
 
@@ -104,7 +105,7 @@ def wrappedTextBox(canvas, text, boxSize, fontName, fontSize):
 
 # TODO: top/bottom margin
 textWidth = LABEL_SIZE[1] - qr_size - leftMargin - item_spacing
-wrappedTextBox(c, args.text, (textWidth, LABEL_SIZE[0]), fontName, fontSize)
+wrappedTextBox(c, args.text, (textWidth, LABEL_SIZE[0]), args.font, args.font_size)
 
 # save label pdf file
 c.save()
