@@ -14,7 +14,12 @@ import sys
 parser = argparse.ArgumentParser("Print labels for dymo label writer, optionally with a qr code")
 parser.add_argument('text', type=str, help="Text")
 parser.add_argument('qr', type=str, help="Text to generate a qr code for")
+parser.add_argument('--icon', type=str, help="Optional png icon file")
 parser.add_argument('--print', action='store_true', help="Print the label")
+parser.add_argument('--output', '-o', type=str, default='label.pdf', help="Pdf output file path")
+parser.add_argument('--bbox', action='store_true', help="Draw a bounding box around the label")
+parser.add_argument('--noconfirm', action='store_true', help="When asked to print, just do it, don't ask for confirmation")
+parser.add_argument('--preview', action='store_true', help="Show a preview of the generated pdf")
 args = parser.parse_args()
 
 
@@ -22,17 +27,21 @@ args = parser.parse_args()
 qr = qrcode.make(args.qr)
 img = ImageReader(qr._img)
 
-
-LABEL_SIZE = (1.125*inch, 3.25*inch)
-# LABEL_SIZE = (0.6*inch, 1.75*inch)
+# TODO: make label size a cmdline arg
+# LABEL_SIZE = (1.125*inch, 3.25*inch)
+LABEL_SIZE = (0.6*inch, 1.75*inch)
 
 
 # create label
-outfile = "label.pdf"
-c = canvas.Canvas(outfile, pagesize=LABEL_SIZE)
+c = canvas.Canvas(args.output, pagesize=LABEL_SIZE)
 
 # draw qr code
 c.drawImage(img, 0, 0, LABEL_SIZE[0], LABEL_SIZE[0])
+
+# draw bounding box
+if args.bbox:
+    c.rect(0, 0, LABEL_SIZE[0], LABEL_SIZE[1], stroke=1, fill=0)
+
 
 # font
 fontName = 'Helvetica'
@@ -55,7 +64,15 @@ lineSpacing = getTextHeight(fontName, fontSize)
 
 # margins
 leftMargin = 10
-topMargin = leftMargin
+topMargin = 10
+
+if args.icon:
+    # TODO: don't hardcode so many things
+    img_width = 20
+    c.drawImage(args.icon, 4, -(LABEL_SIZE[0]*2 - img_width)/2, img_width, img_width)
+    leftMargin += img_width
+
+# TODO: right margin
 
 c.translate(leftMargin, -topMargin)
 textWidth = LABEL_SIZE[1] - LABEL_SIZE[0] - leftMargin
@@ -78,10 +95,20 @@ for i in range(len(lines)):
 
 # save label pdf file
 c.save()
-print("Wrote '%s'" % outfile)
+print("Wrote '%s'" % args.output)
+
+if args.preview:
+    proc.check_output(['xdg-open', args.output])
 
 # print
 if args.print:
+    if not args.noconfirm:
+        print('Confirm print: [yn] ', end='')
+        response = input().lower()
+        if response not in ['y', 'yes']:
+            print("Cancelled, aborting print")
+            sys.exit(0)
+
     print('Printing label...')
-    proc.check_call(['lpr', outfile])
+    proc.check_call(['lpr', args.output])
     print('Done')
