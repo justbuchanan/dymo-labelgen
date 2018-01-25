@@ -13,7 +13,7 @@ import sys
 # setup command-line arguments
 parser = argparse.ArgumentParser("Print labels for dymo label writer, optionally with a qr code and an icon")
 parser.add_argument('text', type=str, help="Text")
-parser.add_argument('qr', type=str, help="Text to generate a qr code for")
+parser.add_argument('--qr', type=str, help="Text to generate a qr code for")
 parser.add_argument('--icon', type=str, help="Optional png icon file")
 parser.add_argument('--print', action='store_true', help="Print the label")
 parser.add_argument('--output', '-o', type=str, default='label.pdf', help="Pdf output file path")
@@ -46,9 +46,12 @@ c.rotate(-90)
 c.translate(-LABEL_SIZE[1], 0)
 
 # draw qr code
-qr = qrcode.make(args.qr)
 qr_size = LABEL_SIZE[0]
-c.drawImage(ImageReader(qr._img), LABEL_SIZE[1] - qr_size, 0, qr_size, qr_size)
+if args.qr != None:
+    qr = qrcode.make(args.qr)
+    c.drawImage(ImageReader(qr._img), LABEL_SIZE[1] - qr_size, 0, qr_size, qr_size)
+else:
+    qr_size = 0
 
 # draw bounding box
 if args.bbox:
