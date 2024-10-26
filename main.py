@@ -29,7 +29,7 @@ parser.add_argument('--output', '-o', type=str, default='label.pdf', help="Pdf o
 parser.add_argument('--bbox', action='store_true', help="Draw a bounding box around the label")
 parser.add_argument('--noconfirm', action='store_true', help="When asked to print, just do it, don't ask for confirmation")
 parser.add_argument('--preview', action='store_true', help="Show a preview of the generated pdf")
-parser.add_argument('--size', type=str, default='normal', help="One of ['small', 'normal']")
+parser.add_argument('--size', type=str, default='normal', help="One of ['small', 'official_small', 'normal']")
 parser.add_argument('--font_size', type=int, default=10)
 parser.add_argument('--font', type=str, default='Helvetica')
 args = parser.parse_args()
@@ -39,9 +39,11 @@ args = parser.parse_args()
 if args.size == 'normal':
     # LabelWriter 450 address labels
     LABEL_SIZE = (1.125*inch, 3.25*inch)
-elif args.size == 'small':
+elif args.size == 'small': # this 'small' is a fairly arbitrary size I picked
     # small enough to fit on an akro-mils container
     LABEL_SIZE = (0.6*inch, 1.75*inch)
+elif args.size == 'official_small': # this 'small' is what dymo sells as the small size (https://amzn.com/dp/B002ISSCF2)
+    LABEL_SIZE = (1*inch, 1.5*inch)
 else:
     print("Size %s not valid" % args.size, end='')
     sys.exit(1)
