@@ -13,6 +13,10 @@ with open('labels.csv', 'r') as csvfile:
             text = row[0].strip()
             icon_name = row[1].strip()
             url = 'https://shop.justbuchanan.com/inventory/%d' % i
-            proc.check_call(['./main.py', '--size=small', '--out=out/%d.pdf' % i, '--bbox', '--icon=icons/%s.png' % icon_name, text, url])
+            proc.check_call([
+                './main.py', '--size=small',
+                '--out=out/%d.pdf' % i, '--bbox',
+                '--icon=icons/%s.png' % icon_name, text, url
+            ])
 
         i += 1

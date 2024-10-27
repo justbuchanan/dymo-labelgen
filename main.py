@@ -11,43 +11,59 @@ import subprocess as proc
 import sys
 import os
 
+
 # https://stackoverflow.com/questions/17317219/is-there-an-platform-independent-equivalent-of-os-startfile
 def open_file(filename):
     if sys.platform == "win32":
         os.startfile(filename)
     else:
-        opener ="open" if sys.platform == "darwin" else "xdg-open"
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
         proc.call([opener, filename])
 
+
 # setup command-line arguments
-parser = argparse.ArgumentParser("Print labels for dymo label writer, optionally with a qr code and an icon")
+parser = argparse.ArgumentParser(
+    "Print labels for dymo label writer, optionally with a qr code and an icon"
+)
 parser.add_argument('text', type=str, help="Text")
 parser.add_argument('--qr', type=str, help="Text to generate a qr code for")
 parser.add_argument('--icon', type=str, help="Optional png icon file")
 parser.add_argument('--print', action='store_true', help="Print the label")
-parser.add_argument('--output', '-o', type=str, default='label.pdf', help="Pdf output file path")
-parser.add_argument('--bbox', action='store_true', help="Draw a bounding box around the label")
-parser.add_argument('--noconfirm', action='store_true', help="When asked to print, just do it, don't ask for confirmation")
-parser.add_argument('--preview', action='store_true', help="Show a preview of the generated pdf")
-parser.add_argument('--size', type=str, default='normal', help="One of ['small', 'official_small', 'normal']")
+parser.add_argument('--output',
+                    '-o',
+                    type=str,
+                    default='label.pdf',
+                    help="Pdf output file path")
+parser.add_argument('--bbox',
+                    action='store_true',
+                    help="Draw a bounding box around the label")
+parser.add_argument(
+    '--noconfirm',
+    action='store_true',
+    help="When asked to print, just do it, don't ask for confirmation")
+parser.add_argument('--preview',
+                    action='store_true',
+                    help="Show a preview of the generated pdf")
+parser.add_argument('--size',
+                    type=str,
+                    default='normal',
+                    help="One of ['small', 'official_small', 'normal']")
 parser.add_argument('--font_size', type=int, default=10)
 parser.add_argument('--font', type=str, default='Helvetica')
 args = parser.parse_args()
 
-
 # label size
 if args.size == 'normal':
     # LabelWriter 450 address labels
-    LABEL_SIZE = (1.125*inch, 3.25*inch)
-elif args.size == 'small': # this 'small' is a fairly arbitrary size I picked
+    LABEL_SIZE = (1.125 * inch, 3.25 * inch)
+elif args.size == 'small':  # this 'small' is a fairly arbitrary size I picked
     # small enough to fit on an akro-mils container
-    LABEL_SIZE = (0.6*inch, 1.75*inch)
-elif args.size == 'official_small': # this 'small' is what dymo sells as the small size (https://amzn.com/dp/B002ISSCF2)
-    LABEL_SIZE = (1*inch, 1.5*inch)
+    LABEL_SIZE = (0.6 * inch, 1.75 * inch)
+elif args.size == 'official_small':  # this 'small' is what dymo sells as the small size (https://amzn.com/dp/B002ISSCF2)
+    LABEL_SIZE = (1 * inch, 1.5 * inch)
 else:
     print("Size %s not valid" % args.size, end='')
     sys.exit(1)
-
 
 # create label
 c = canvas.Canvas(args.output, pagesize=LABEL_SIZE)
@@ -60,14 +76,14 @@ c.translate(-LABEL_SIZE[1], 0)
 qr_size = LABEL_SIZE[0]
 if args.qr != None:
     qr = qrcode.make(args.qr)
-    c.drawImage(ImageReader(qr._img), LABEL_SIZE[1] - qr_size, 0, qr_size, qr_size)
+    c.drawImage(ImageReader(qr._img), LABEL_SIZE[1] - qr_size, 0, qr_size,
+                qr_size)
 else:
     qr_size = 0
 
 # draw bounding box
 if args.bbox:
     c.rect(0, 0, LABEL_SIZE[1], LABEL_SIZE[0], stroke=1, fill=0)
-
 
 # font
 c.setFont(args.font, args.font_size)
@@ -79,8 +95,9 @@ def getTextHeight(fontName, fontSize):
     ascent = (face.ascent * fontSize) / 1000.0
     descent = (face.descent * fontSize) / 1000.0
 
-    height = ascent - descent # <-- descent it's negative
+    height = ascent - descent  # <-- descent it's negative
     return height
+
 
 item_spacing = 4
 
@@ -91,7 +108,8 @@ c.translate(leftMargin, 0)
 if args.icon:
     # TODO: don't hardcode so many things
     img_width = 20
-    c.drawImage(args.icon, 0, (LABEL_SIZE[0] - img_width) / 2, img_width, img_width)
+    c.drawImage(args.icon, 0, (LABEL_SIZE[0] - img_width) / 2, img_width,
+                img_width)
     c.translate(img_width + item_spacing, 0)
 
 
@@ -117,9 +135,11 @@ def wrappedTextBox(canvas, text, boxSize, fontName, fontSize):
 
     c.restoreState()
 
+
 # TODO: top/bottom margin
 textWidth = LABEL_SIZE[1] - qr_size - leftMargin - item_spacing
-wrappedTextBox(c, args.text, (textWidth, LABEL_SIZE[0]), args.font, args.font_size)
+wrappedTextBox(c, args.text, (textWidth, LABEL_SIZE[0]), args.font,
+               args.font_size)
 
 # save label pdf file
 c.save()
