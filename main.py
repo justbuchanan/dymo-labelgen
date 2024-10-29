@@ -37,6 +37,9 @@ parser.add_argument('--output',
 parser.add_argument('--bbox',
                     action='store_true',
                     help="Draw a bounding box around the label")
+parser.add_argument('--centered',
+                    action='store_true',
+                    help="Center text horizontally")
 parser.add_argument(
     '--noconfirm',
     action='store_true',
@@ -131,7 +134,10 @@ def wrappedTextBox(canvas, text, boxSize, fontName, fontSize):
 
     # print each line
     for i in range(len(lines)):
-        c.drawString(0, -lineHeight * i, lines[i])
+        if args.centered:
+            c.drawCentredString(boxSize[0] / 2, -lineHeight * i, lines[i])
+        else:
+            c.drawString(0, -lineHeight * i, lines[i])
 
     c.restoreState()
 
