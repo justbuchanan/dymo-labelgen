@@ -17,6 +17,10 @@
         };
       in
       rec {
+        packages.default = pkgs.writeShellScriptBin "dymo-labelgen" ''
+          exec ${pkgs.python312.withPackages (ps: with ps; [ qrcode reportlab ])}/bin/python ${./main.py} "$@"
+        '';
+
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
             (python312.withPackages (
